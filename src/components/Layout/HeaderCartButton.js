@@ -9,8 +9,24 @@ const HeaderCartButton = (props) => {
 		return cur + item.amount;
 	}, 0);
 
+	const [btnIsHighlighted, setBtnIsHighlighted] = React.useState(false);
+	const btnClasses = `${classes.button} ${btnIsHighlighted ? classes.bump : ""}`;
+
+	React.useEffect(() => {
+		if (cartCtx.items.length === 0) return;
+		setBtnIsHighlighted(true);
+
+		const timer = setTimeout(() => {
+			setBtnIsHighlighted(false);
+		}, 300);
+
+		return () => {
+			clearTimeout(timer);
+		};
+	}, [cartCtx.items]);
+
 	return (
-		<button className={classes.button} onClick={props.onClick}>
+		<button className={btnClasses} onClick={props.onClick}>
 			<span className={classes.icon}>
 				<CartIcon />
 			</span>
