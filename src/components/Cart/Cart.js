@@ -4,10 +4,13 @@ import CartItem from "./CartItem";
 import Modal from "../UI/Modal";
 import Checkout from "./Checkout";
 import classes from "./Cart.module.css";
+import useHTTP from "../../hooks/use-http";
 
 const Cart = (props) => {
 	const cartCtx = React.useContext(CartContext);
 	const [isCheckOut, setIsCheckOut] = React.useState(false);
+	const [isSubmitting, setIsSubmitting] = React.useState(false);
+	const [didSubmit, setDidSubmit] = React.useState(false);
 
 	const totalAmount = `$${cartCtx.totalAmount.toFixed(2)}`;
 	const hasItems = cartCtx.items.length > 0;
@@ -22,6 +25,24 @@ const Cart = (props) => {
 
 	const orderHandler = () => {
 		setIsCheckOut(true);
+	};
+
+	const submitOrderHandler = async (userData) => {
+		setIsSubmitting(true);
+		await fetch("https://react-http-2f902-default-rtdb.firebaseio.com/orders.json", {
+			method: "POST",
+			body: JSON.stringify({
+				user: userData,
+				orderItems: cartCtx.items,
+			}),
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+		setIsSubmitting(false);
+		setDidSubmit(true);
+
+		cartCtx.clearCart();
 	};
 
 	const cartItems = (
@@ -54,15 +75,42 @@ const Cart = (props) => {
 		);
 	};
 
+	const cartModalContent = () => {
+		return (
+			<>
+				{cartItems}
+				<div className={classes.total}>
+					<span>Total Amount</span>
+					<span>{totalAmount}</span>
+				</div>
+				{isCheckOut && <Checkout onConfirm={submitOrderHandler} onCancel={props.onClose} />}
+				{!isCheckOut && modalActions()}
+			</>
+		);
+	};
+
+	const isLoadingContent = () => {
+		return <p>Sending order...</p>;
+	};
+
+	const sentOrderContent = () => {
+		return (
+			<>
+				<p>Order sent successfully</p>
+				<div className={classes.actions}>
+					<button className={classes.button} onClick={props.onClose}>
+						Close
+					</button>
+				</div>
+			</>
+		);
+	};
+
 	return (
 		<Modal onClose={props.onClose}>
-			{cartItems}
-			<div className={classes.total}>
-				<span>Total Amount</span>
-				<span>{totalAmount}</span>
-			</div>
-			{isCheckOut && <Checkout onCancel={props.onClose} />}
-			{!isCheckOut && modalActions()}
+			{!isSubmitting && !didSubmit && cartModalContent()}
+			{isSubmitting && isLoadingContent()}
+			{!isSubmitting && didSubmit && sentOrderContent()}
 		</Modal>
 	);
 };
